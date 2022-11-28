@@ -51,6 +51,14 @@ pub fn file_vec_vec_char(filename: &str) -> Vec<Vec<char>> {
     return ret;
 }
 
+pub fn file_vec_vec_by_sep(filename: &str, sep: &str) -> Vec<Vec<String>> {
+    let mut ret = Vec::new();
+    for line in file_lines(filename) {
+        ret.push(vec_by_sep(line.as_str(), sep));
+    }
+    return ret;
+}
+
 pub struct ReCap<'captures_lifetime> {
     captures: regex::Captures<'captures_lifetime>,
 }
