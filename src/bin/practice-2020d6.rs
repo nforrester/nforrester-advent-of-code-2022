@@ -7,7 +7,7 @@ fn main () {
     let mut questions = HashMap::new();
     for line in file_vec_vec_char("input/practice-2020d6.txt") {
         if line.len() == 0 {
-            for (q, c) in questions.iter() {
+            for (_, c) in questions.iter() {
                 if *c == group_size {
                     sum_of_counts += 1
                 }
@@ -25,7 +25,7 @@ fn main () {
             }
         }
     }
-    for (q, c) in questions.iter() {
+    for (_, c) in questions.iter() {
         if *c == group_size {
             sum_of_counts += 1
         }
