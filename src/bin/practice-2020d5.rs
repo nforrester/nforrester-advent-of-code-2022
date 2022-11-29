@@ -1,7 +1,9 @@
 use rusty_advent::*;
 
 fn main () {
+    let mut min_id = 1000000000;
     let mut max_id = 0;
+    let mut ids = std::collections::HashSet::new();
     for line in file_vec_vec_char("input/practice-2020d5.txt") {
 		let row_spec = &line[..7];
 		let col_spec = &line[7..];
@@ -24,8 +26,13 @@ fn main () {
             }
         }
         let id = row * 8 + col;
-        println!("{}", id);
+        min_id = std::cmp::min(min_id, id);
         max_id = std::cmp::max(max_id, id);
+        ids.insert(id);
     }
-    println!("max = {}", max_id);
+    for id in min_id..=max_id {
+        if !ids.contains(&id) {
+            println!("{}", id);
+        }
+    }
 }
