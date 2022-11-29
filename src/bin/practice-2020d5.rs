@@ -1,9 +1,10 @@
 use rusty_advent::*;
+use std::collections::HashSet;
 
 fn main () {
     let mut min_id = 1000000000;
     let mut max_id = 0;
-    let mut ids = std::collections::HashSet::new();
+    let mut ids = HashSet::new();
     for line in file_vec_vec_char("input/practice-2020d5.txt") {
 		let row_spec = &line[..7];
 		let col_spec = &line[7..];
