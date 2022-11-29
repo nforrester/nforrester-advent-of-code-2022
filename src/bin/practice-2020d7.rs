@@ -82,12 +82,12 @@ fn main () {
     unfilled_bags.insert("shiny gold", 1);
     loop {
         let (bag, num) = unfilled_bags.iter().next().unwrap();
-        let bag = String::from(*bag);
+        let bag = *bag;
         let num = *num;
         bag_count += num;
-        unfilled_bags.remove(bag.as_str());
+        unfilled_bags.remove(bag);
         println!("{}", bag);
-        for (new_bag, count) in rules.get(bag.as_str()).unwrap() {
+        for (new_bag, count) in rules.get(bag).unwrap() {
             if unfilled_bags.contains_key(new_bag.as_str()) {
                 unfilled_bags.insert(new_bag.as_str(), unfilled_bags.get(new_bag.as_str()).unwrap() + num * count);
             } else {
