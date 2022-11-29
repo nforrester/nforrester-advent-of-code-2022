@@ -45,6 +45,7 @@ fn main () {
                 ruled_description.push_str(word);
             }
         }
+        these_rules.remove("other");
         rules.insert(ruler_description, these_rules);
         assert!(line.next() == None);
     }
@@ -74,4 +75,28 @@ fn main () {
         prev_size = possible_bags.len();
     }
     println!("{}", prev_size);
+
+    println!("part2:");
+    let mut bag_count = -1;
+    let mut unfilled_bags = HashMap::new();
+    unfilled_bags.insert("shiny gold", 1);
+    loop {
+        let (bag, num) = unfilled_bags.iter().next().unwrap();
+        let bag = String::from(*bag);
+        let num = *num;
+        bag_count += num;
+        unfilled_bags.remove(bag.as_str());
+        println!("{}", bag);
+        for (new_bag, count) in rules.get(bag.as_str()).unwrap() {
+            if unfilled_bags.contains_key(new_bag.as_str()) {
+                unfilled_bags.insert(new_bag.as_str(), unfilled_bags.get(new_bag.as_str()).unwrap() + num * count);
+            } else {
+                unfilled_bags.insert(new_bag, num * count);
+            }
+        }
+        if unfilled_bags.len() == 0 {
+            break;
+        }
+    }
+    println!("{}", bag_count);
 }
