@@ -14,11 +14,10 @@ fn main () {
     }
     cals.push(cal);
     cals.sort();
-    let cals: Vec<i64> = cals.into_iter().rev().collect();
-    let p1: i64 = cals[0];
-    let p2: i64 = cals[0..3].into_iter().sum::<i64>();
-    println!("p1: {}", p1);
-    println!("p2: {}", p2);
-    assert_eq!(p1, 67027);
-    assert_eq!(p2, 197291);
+    let top_one: i64 = cals[cals.len()-1];
+    let top_three: i64 = cals[cals.len()-3..].into_iter().sum::<i64>();
+    println!("part 1: {top_one}");
+    println!("part 2: {top_three}");
+    assert_eq!(top_one, 67027);
+    assert_eq!(top_three, 197291);
 }

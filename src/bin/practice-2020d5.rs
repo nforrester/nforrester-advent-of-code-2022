@@ -31,9 +31,12 @@ fn main () {
         max_id = std::cmp::max(max_id, id);
         ids.insert(id);
     }
+    println!("part 1: {max_id}");
+    assert_eq!(max_id, 987);
     for id in min_id..=max_id {
         if !ids.contains(&id) {
-            println!("{}", id);
+            println!("part 2: {id}");
+            assert_eq!(id, 603);
         }
     }
 }

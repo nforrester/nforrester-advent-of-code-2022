@@ -74,9 +74,9 @@ fn main () {
         }
         prev_size = possible_bags.len();
     }
-    println!("{}", prev_size);
+    println!("part 1: {prev_size}");
+    assert_eq!(prev_size, 242);
 
-    println!("part2:");
     let mut bag_count = -1;
     let mut unfilled_bags = HashMap::new();
     unfilled_bags.insert("shiny gold", 1);
@@ -86,7 +86,6 @@ fn main () {
         let num = *num;
         bag_count += num;
         unfilled_bags.remove(bag);
-        println!("{}", bag);
         for (new_bag, count) in rules.get(bag).unwrap() {
             if unfilled_bags.contains_key(new_bag.as_str()) {
                 unfilled_bags.insert(new_bag.as_str(), unfilled_bags.get(new_bag.as_str()).unwrap() + num * count);
@@ -98,5 +97,6 @@ fn main () {
             break;
         }
     }
-    println!("{}", bag_count);
+    println!("part 2: {bag_count}");
+    assert_eq!(bag_count, 176035);
 }
