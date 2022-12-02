@@ -1,131 +1,94 @@
 use rusty_advent::*;
-use std::vec::Vec;
 
-fn main() {
-	let mut a = 0;
-	let mut b = 0;
-    for line in file_vec_vec_word("input/d2.txt") {
-        let player1 = &line[0];
-        let player2 = &line[1];
-        if player2 == "X" {
-            a += 1;
-        } else if player2 == "Y" {
-            a += 2;
-        } else if player2 == "Z" {
-            a += 3;
-        } else {
-            panic!("");
-        }
-        if player1 == "A" {
-        } else if player1 == "B" {
-        } else if player1 == "C" {
-        } else {
-            panic!("");
-        }
-        if player2 == "X" {
-            if player1 == "A" {
-                a += 3;
-            } else if player1 == "B" {
-                a += 0;
-            } else if player1 == "C" {
-                a += 6;
-            }
-        } else if player2 == "Y" {
-            if player1 == "A" {
-                a += 6;
-            } else if player1 == "B" {
-                a += 3;
-            } else if player1 == "C" {
-                a += 0;
-            }
-        } else if player2 == "Z" {
-            if player1 == "A" {
-                a += 0;
-            } else if player1 == "B" {
-                a += 6;
-            } else if player1 == "C" {
-                a += 3;
-            }
-        }
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+enum Move { Rock, Paper, Scissors }
+use Move::Rock;
+use Move::Paper;
+use Move::Scissors;
 
-
-
-
-
-        let pstrat = player2;
-        let player2;
-        if pstrat == "X" {
-            if player1 == "A" {
-                player2 = "Z";
-            } else if player1 == "B" {
-                player2 = "X";
-            } else if player1 == "C" {
-                player2 = "Y";
-            } else {panic!("");}
-        } else if pstrat == "Y" {
-            if player1 == "A" {
-                player2 = "X";
-            } else if player1 == "B" {
-                player2 = "Y";
-            } else if player1 == "C" {
-                player2 = "Z";
-            } else {panic!("");}
-        } else if pstrat == "Z" {
-            if player1 == "A" {
-                player2 = "Y";
-            } else if player1 == "B" {
-                player2 = "Z";
-            } else if player1 == "C" {
-                player2 = "X";
-            } else {panic!("");}
-        } else {panic!("");}
-
-
-
-
-        if player2 == "X" {
-            b += 1;
-        } else if player2 == "Y" {
-            b += 2;
-        } else if player2 == "Z" {
-            b += 3;
-        } else {
-            panic!("");
-        }
-        if player1 == "A" {
-        } else if player1 == "B" {
-        } else if player1 == "C" {
-        } else {
-            panic!("");
-        }
-        if player2 == "X" {
-            if player1 == "A" {
-                b += 3;
-            } else if player1 == "B" {
-                b += 0;
-            } else if player1 == "C" {
-                b += 6;
-            }
-        } else if player2 == "Y" {
-            if player1 == "A" {
-                b += 6;
-            } else if player1 == "B" {
-                b += 3;
-            } else if player1 == "C" {
-                b += 0;
-            }
-        } else if player2 == "Z" {
-            if player1 == "A" {
-                b += 0;
-            } else if player1 == "B" {
-                b += 6;
-            } else if player1 == "C" {
-                b += 3;
-            }
+impl Move {
+    fn from(s: &str) -> Self {
+        match s {
+            "A" => Rock,
+            "X" => Rock,
+            "B" => Paper,
+            "Y" => Paper,
+            "C" => Scissors,
+            "Z" => Scissors,
+            _ => panic!("Invalid move: {s}"),
         }
     }
-    println!("part 1: {}", a);
-    println!("part 2: {}", b);
-    assert_eq!(a, 13682);
-    assert_eq!(b, 12881);
+
+    fn score(&self) -> i64 {
+        match self {
+            Rock => 1,
+            Paper => 2,
+            Scissors => 3,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+enum Outcome { Loss, Draw, Win }
+use Outcome::Loss;
+use Outcome::Draw;
+use Outcome::Win;
+
+impl Outcome {
+    fn from(s: &str) -> Self {
+        match s {
+            "X" => Loss,
+            "Y" => Draw,
+            "Z" => Win,
+            _ => panic!("Invalid outcome: {s}"),
+        }
+    }
+
+    fn score(&self) -> i64 {
+        match self {
+            Loss => 0,
+            Draw => 3,
+            Win => 6,
+        }
+    }
+}
+
+fn decide_outcome(opponent_move: Move, my_move: Move) -> Outcome {
+    match (opponent_move.score() - my_move.score()).rem_euclid(3) {
+        0 => Draw,
+        1 => Loss,
+        2 => Win,
+        _ => panic!("Modular arithmetic is broken!"),
+    }
+}
+
+fn decide_my_move(opponent_move: Move, outcome: Outcome) -> Move {
+    for my_move in [Rock, Paper, Scissors] {
+        if decide_outcome(opponent_move, my_move) == outcome {
+            return my_move;
+        }
+    }
+    panic!("The desired outcome should be possible.");
+}
+
+fn part1(opponent_move: Move, my_move: Move) -> i64 {
+    my_move.score() + decide_outcome(opponent_move, my_move).score()
+}
+
+fn part2(opponent_move: Move, outcome: Outcome) -> i64 {
+    decide_my_move(opponent_move, outcome).score() + outcome.score()
+}
+
+fn main() {
+	let mut total_part1 = 0;
+	let mut total_part2 = 0;
+    for line in file_vec_vec_word("input/d2.txt") {
+        let opponent_move = Move::from(&line[0]);
+        total_part1 += part1(opponent_move, Move::from(&line[1]));
+        total_part2 += part2(opponent_move, Outcome::from(&line[1]));
+    }
+    println!("part 1: {}", total_part1);
+    println!("part 2: {}", total_part2);
+    assert_eq!(total_part1, 13682);
+    assert_eq!(total_part2, 12881);
 }
