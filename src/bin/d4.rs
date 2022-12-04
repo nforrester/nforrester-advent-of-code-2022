@@ -1,28 +1,44 @@
 use rusty_advent::*;
 
+use std::str::FromStr;
+
+struct ElfRange {
+    lo: i64,
+    hi: i64,
+}
+
+impl ElfRange {
+    fn inside_of(&self, other: &Self) -> bool {
+        other.lo <= self.lo && self.hi <= other.hi
+    }
+
+    fn overlaps_with(&self, other: &Self) -> bool {
+        (other.lo <= self.lo && self.lo <= other.hi) || (other.lo <= self.hi && self.hi <= other.hi) || other.inside_of(self)
+    }
+}
+
+impl FromStr for ElfRange {
+    type Err = bool;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut s = s.split("-");
+        let lo = s.next().ok_or(false)?.parse().map_err(|_|{false})?;
+        let hi = s.next().ok_or(false)?.parse().map_err(|_|{false})?;
+        return Ok(ElfRange { lo, hi });
+    }
+}
+
 fn main() {
     let mut part1 = 0;
     let mut part2 = 0;
-    for line in file_lines("input/d4.txt") {
-        let cap = recap(r"(?P<a>\d+)-(?P<b>\d+),(?P<c>\d+)-(?P<d>\d+)", line.as_str());
-        let a = cap.get::<i64>("a");
-        let b = cap.get::<i64>("b");
-        let c = cap.get::<i64>("c");
-        let d = cap.get::<i64>("d");
+    for line in file_vec_vec_by_sep("input/d4.txt", ",") {
+        let a: ElfRange = line[0].parse().unwrap();
+        let b: ElfRange = line[1].parse().unwrap();
 
-        if a <= c && d <= b {
+        if a.inside_of(&b) || b.inside_of(&a) {
             part1 += 1;
-            part2 += 1;
-        } else if c <= a && b <= d {
-            part1 += 1;
-            part2 += 1;
-        } else if c <= a && a <= d {
-            part2 += 1;
-        } else if c <= b && b <= d {
-            part2 += 1;
-        } else if a <= c && c <= b {
-            part2 += 1;
-        } else if a <= d && d <= b {
+        }
+        if a.overlaps_with(&b) {
             part2 += 1;
         }
     }
