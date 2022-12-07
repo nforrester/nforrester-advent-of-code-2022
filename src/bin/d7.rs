@@ -19,25 +19,22 @@ fn file_to_path(pwd: &Vec<String>, file: &str) -> String {
 fn build_filesystem(filename: &str) -> HashMap<String, u64> {
     let mut pwd = Vec::new();
     let mut fs: HashMap<String, u64> = HashMap::new();
-    for line in file_vec_vec_word(filename) {
-        if line[0] == "$" {
-            if line[1] == "cd" {
-                if line[2] == "/" {
-                    pwd.clear();
-                } else if line[2] == ".." {
-                    pwd.pop();
-                } else {
-                    pwd.push(line[2].clone());
+    for line in file_lines(filename) {
+        let words: Vec<_> = line.split_whitespace().collect();
+        match words.as_slice() {
+            ["$", "cd", "/"] => pwd.clear(),
+            ["$", "cd", ".."] => {pwd.pop();},
+            ["$", "cd", subdir] => pwd.push(subdir.to_string()),
+            ["$", ..] => {},
+            ["dir", _] => {},
+            [size_str, file] => {
+                let size: u64 = size_str.parse().unwrap();
+                let filepath = file_to_path(&pwd, file);
+                if fs.contains_key(&filepath) {
+                    continue;
                 }
-            }
-        } else {
-            if line[0] == "dir" {
-            } else {
-                let size: u64 = line[0].parse().unwrap();
-                let file = &line[1];
-                let filepath = file_to_path(&pwd, &file);
                 fs.insert(filepath, size);
-                let mut dir = pwd.clone();
+                let mut dir: Vec<_> = pwd.iter().map(|s|{s.to_string()}).collect();
                 dir.push("x".to_string());
                 loop {
                     dir.pop();
@@ -50,7 +47,8 @@ fn build_filesystem(filename: &str) -> HashMap<String, u64> {
                         break;
                     }
                 }
-            }
+            },
+            _ => {},
         }
     }
     return fs;
