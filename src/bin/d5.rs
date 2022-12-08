@@ -1,23 +1,30 @@
 use rusty_advent::*;
 
-fn init() -> Vec<Vec<char>> {
-    vec![
-        vec!['R','G','J','B','T','V','Z'],
-        vec!['J','R','V','L'],
-        vec!['S','Q','F'],
-        vec!['Z','H','N','L','F','V','Q','G'],
-        vec!['R','Q','T','J','C','S','M','W'],
-        vec!['S','W','T','C','H','F'],
-        vec!['D','Z','C','V','F','N','J'],
-        vec!['L','G','Z','D','W','R','F','Q'],
-        vec!['J','B','W','V','P'],
-    ]
+fn parse_stacks(filename: &str) -> Vec<Vec<char>> {
+    // Read the file up until the first blank line. This extracts the image of the stacks.
+    let stack_image: Vec<Vec<char>> =
+        std::fs::read_to_string(filename).unwrap().lines().map(|s|{s.chars().collect()}).take_while(|row: &Vec<_>|{row.len() > 0}).collect();
+
+    (0..stack_image[0].len())                                                    // For each column,
+        .map(|col_idx|{ stack_image.iter().map(|row|{row[col_idx]}).collect() }) // collect it into a vector,
+        .map(|col: Vec<char>|{ col.into_iter().rev().collect() })                // reverse it so the bottom of the stack is at the top,
+        .filter(|col: &Vec<char>|{ col.len() > 0 && col[0] != ' ' })             // drop all the columns that start with a space (the ones that aren't stacks),
+        .map(|row|{
+                row[1..]                                                         // drop the stack number,
+                .iter()
+                .map(|x|{*x}).take_while(|ch|{*ch != ' '})                       // drop the spaces at the bottom,
+                .collect()
+            })
+        .collect()                                                               // and that's it!
 }
 
 fn part1(filename: &str) {
-    let mut stacks: Vec<Vec<char>> = init();
+    let mut stacks: Vec<Vec<char>> = parse_stacks(filename);
 
     for line in file_vec_vec_word(filename) {
+        if line.len() == 0 || line[0] != "move" {
+            continue;
+        }
         let num_crates = line[1].parse::<usize>().unwrap();
         let from = line[3].parse::<usize>().unwrap() - 1;
         let to = line[5].parse::<usize>().unwrap() - 1;
@@ -38,9 +45,12 @@ fn part1(filename: &str) {
 }
 
 fn part2(filename: &str) {
-    let mut stacks: Vec<Vec<char>> = init();
+    let mut stacks: Vec<Vec<char>> = parse_stacks(filename);
 
     for line in file_vec_vec_word(filename) {
+        if line.len() == 0 || line[0] != "move" {
+            continue;
+        }
         let num_crates = line[1].parse::<usize>().unwrap();
         let from = line[3].parse::<usize>().unwrap() - 1;
         let to = line[5].parse::<usize>().unwrap() - 1;
