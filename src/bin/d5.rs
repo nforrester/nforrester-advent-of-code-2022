@@ -1,9 +1,12 @@
 use rusty_advent::*;
+use std::fs::File;
+use std::io::BufReader;
+use std::io::BufRead;
 
 fn parse_stacks(filename: &str) -> Vec<Vec<char>> {
     // Read the file up until the first blank line. This extracts the image of the stacks.
     let stack_image: Vec<Vec<char>> =
-        std::fs::read_to_string(filename).unwrap().lines().map(|s|{s.chars().collect()}).take_while(|row: &Vec<_>|{row.len() > 0}).collect();
+        BufReader::new(File::open(filename).unwrap()).lines().map(|s|{s.unwrap().chars().collect()}).take_while(|row: &Vec<_>|{row.len() > 0}).collect();
 
     (0..stack_image[0].len())                                                    // For each column,
         .map(|col_idx|{ stack_image.iter().map(|row|{row[col_idx]}).collect() }) // collect it into a vector,
