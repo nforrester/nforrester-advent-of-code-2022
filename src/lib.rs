@@ -60,6 +60,16 @@ mod tests {
         ];
         assert_eq!(r2, transpose_ragged(&r1, 0));
     }
+
+    #[test]
+    fn test_slice_of_strs() {
+        let line: Vec<String> = vec_word("If true: throw to monkey 5");
+        let mt: usize = match slice_of_strs!(line) {
+            ["If", "true:", "throw", "to", "monkey", x] => x.parse().unwrap(),
+            _ => panic!(""),
+        };
+        assert_eq!(mt, 5);
+    }
 }
 
 // string.split_whitespace()
@@ -137,4 +147,11 @@ pub fn transpose_ragged<T: Copy>(matrix: &Vec<Vec<T>>, fill: T) -> Vec<Vec<T>> {
                     }
                 }).collect()
         }).collect()
+}
+
+#[macro_export]
+macro_rules! slice_of_strs {
+    ( $x:expr ) => {
+        $x.iter().map(String::as_str).collect::<Vec<_>>().as_slice()
+    }
 }

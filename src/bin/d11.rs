@@ -3,10 +3,6 @@ use rusty_advent::*;
 use std::rc::Rc;
 use std::vec::Vec;
 use std::collections::VecDeque;
-//use std::collections::HashSet;
-//use std::collections::HashMap;
-//use std::cmp::max;
-//use std::cmp::min;
 
 type MonkeyModuli = Vec<i64>;
 type Worry = Vec<i64>;
@@ -21,110 +17,82 @@ struct Monkey {
 }
 
 fn parse_monkeys(filename: &str) -> (Vec<Monkey>, MonkeyModuli) {
-    let words = file_vec_vec_word(filename);
-    let mut num_monkeys = 0;
-    for line in 0..words.len() {
-        if words[line].len() == 0 {
-            continue;
-        }
-        if words[line][0] == "Monkey" {
-            num_monkeys += 1;
-        }
-    }
+    let lines = file_vec_vec_word(filename);
+    let num_monkeys = lines.iter().filter(|line|{ line.len() > 0 && line[0] == "Monkey" }).count();
 
     let mut monkeys = Vec::new();
     let mut moduli = Vec::new();
-    let mut line: usize = 0;
-    'outer: while line < words.len() {
-        while words[line].len() == 0 || words[line][0] != "Monkey" {
-            line += 1;
-            if line >= words.len() {
-                break 'outer;
-            }
+    let mut lines = lines.iter();
+    while let Some(line) = lines.next() {
+        if line.len() == 0 {
+            continue;
         }
-        line += 1;
-        assert_eq!(words[line][0], "Starting");
-        let mut items: VecDeque<Worry> = VecDeque::new();
-        for idx in 2..words[line].len() {
-            let mut word = words[line][idx].to_string();
-            if word.ends_with(",") {
-                word.pop();
-            }
-            let w = word.parse().unwrap();
-            items.push_back((0..num_monkeys).map(|_|{w}).collect());
-        }
-        line += 1;
-        let strs = words[line].iter().map(|s|{s.as_str()}).collect::<Vec<&str>>();
-        let operation: WorryOp = match strs.as_slice() {
+        assert_eq!(line[0], "Monkey");
+
+        let items: VecDeque<Worry> = match slice_of_strs!(lines.next().unwrap()) {
+            ["Starting", "items:", xs @ ..] => {
+                    xs.iter().map(|word|{
+                            let mut word = word.to_string();
+                            if word.ends_with(",") {
+                                word.pop();
+                            }
+                            let worry = word.parse().unwrap();
+                            vec![worry; num_monkeys]
+                        }).collect()
+                },
+            _ => panic!("Bad items"),
+        };
+
+        let operation: WorryOp = match slice_of_strs!(lines.next().unwrap()) {
             ["Operation:", "new", "=", "old", "+", "old"] => Rc::new(move |old: i64| -> i64 { old + old }),
             ["Operation:", "new", "=", "old", "*", "old"] => Rc::new(move |old: i64| -> i64 { old * old }),
-            ["Operation:", "new", "=", "old", "+", x] => { let x = x.parse::<i64>().unwrap(); Rc::new(move |old: i64| -> i64 { old + x }) },
-            ["Operation:", "new", "=", "old", "*", x] => { let x = x.parse::<i64>().unwrap(); Rc::new(move |old: i64| -> i64 { old * x }) },
-            _ => panic!(""),
+            ["Operation:", "new", "=", "old", "+", x] => { let x: i64 = x.parse().unwrap(); Rc::new(move |old: i64| -> i64 { old + x }) },
+            ["Operation:", "new", "=", "old", "*", x] => { let x: i64 = x.parse().unwrap(); Rc::new(move |old: i64| -> i64 { old * x }) },
+            _ => panic!("Bad operation"),
         };
-        line += 1;
-        let strs = words[line].iter().map(|s|{s.as_str()}).collect::<Vec<&str>>();
-        let x: i64 = match strs.as_slice() {
+
+        let modulus = match slice_of_strs!(lines.next().unwrap()) {
             ["Test:", "divisible", "by", x] => x.parse().unwrap(),
-            _ => panic!(""),
+            _ => panic!("Bad test"),
         };
-        line += 1;
-        let strs = words[line].iter().map(|s|{s.as_str()}).collect::<Vec<&str>>();
-        let mt: usize = match strs.as_slice() {
+
+        let monkey_true = match slice_of_strs!(lines.next().unwrap()) {
             ["If", "true:", "throw", "to", "monkey", x] => x.parse().unwrap(),
-            _ => panic!(""),
+            _ => panic!("Bad true outcome"),
         };
-        line += 1;
-        let strs = words[line].iter().map(|s|{s.as_str()}).collect::<Vec<&str>>();
-        let mf: usize = match strs.as_slice() {
+
+        let monkey_false = match slice_of_strs!(lines.next().unwrap()) {
             ["If", "false:", "throw", "to", "monkey", x] => x.parse().unwrap(),
-            _ => panic!(""),
+            _ => panic!("Bad false outcome"),
         };
-        let test: TestFun = 
-            Rc::new(move |worry: i64| -> usize {
-                    if worry % x == 0 {
-                        mt
-                    } else {
-                        mf
-                    }
-                });
+
+        let test = Rc::new(move |worry: i64| -> usize {
+                if worry % modulus == 0 {
+                    monkey_true
+                } else {
+                    monkey_false
+                }
+            });
+
         monkeys.push(Monkey { items, operation, test, inspections: 0 });
-        moduli.push(x);
+        moduli.push(modulus);
     }
     return (monkeys, moduli);
 }
 
-//fn part1(filename: &str) {
-//    let (mut monkeys, moduli) = parse_monkeys(filename);
-//
-//    for round in 0..20 {
-//        for m in 0..monkeys.len() {
-//            while !monkeys[m].items.is_empty() {
-//                let item_worry: Worry = monkeys[m].items.pop_front().unwrap();
-//                let item_worry: Worry = std::iter::zip(item_worry, moduli).map(|(w, modulus)|{(monkeys[m].operation)(w)%modulus}).collect();
-//                let destination = (monkeys[m].test)(item_worry);
-//                monkeys[destination].items.push_back(item_worry);
-//                monkeys[m].inspections += 1;
-//            }
-//        }
-//    }
-//
-//    let mut stuff: Vec<i64> = monkeys.iter().map(|m|{m.inspections}).collect();
-//    stuff.sort();
-//    let stuff: Vec<i64> = stuff.into_iter().rev().collect();
-//
-//    let mut monkey_business = stuff[0] * stuff[1];
-//    println!("{}", monkey_business);
-//}
-
-fn part2(filename: &str) {
+fn run_monkeys<F>(filename: &str, rounds: u64, reduce_worry: F) -> i64
+    where F: Fn(i64, i64) -> i64 {
     let (mut monkeys, moduli) = parse_monkeys(filename);
 
-    for _round in 0..10000 {
+    for _round in 0..rounds {
         for m in 0..monkeys.len() {
             while !monkeys[m].items.is_empty() {
                 let item_worry: Worry = monkeys[m].items.pop_front().unwrap();
-                let item_worry: Worry = std::iter::zip(item_worry, moduli.clone()).map(|(w, modulus)|{(monkeys[m].operation)(w)%modulus}).collect();
+                let item_worry: Worry = std::iter::zip(item_worry, moduli.clone())
+                    .map(|(w, modulus)|{
+                            reduce_worry((monkeys[m].operation)(w), modulus)
+                        })
+                    .collect();
                 let destination = (monkeys[m].test)(item_worry[m]);
                 monkeys[destination].items.push_back(item_worry);
                 monkeys[m].inspections += 1;
@@ -132,17 +100,24 @@ fn part2(filename: &str) {
         }
     }
 
-    let mut stuff: Vec<i64> = monkeys.iter().map(|m|{m.inspections}).collect();
-    stuff.sort();
-    let stuff: Vec<i64> = stuff.into_iter().rev().collect();
+    let mut inspection_counts: Vec<i64> = monkeys.iter().map(|m|{m.inspections}).collect();
+    inspection_counts.sort();
+    return inspection_counts.into_iter().rev().take(2).fold(1, |a, b|{a * b});
+}
 
-    let monkey_business = stuff[0] * stuff[1];
+fn part1(filename: &str) {
+    let monkey_business = run_monkeys(filename, 20, |worry, _|{worry/3});
     println!("{}", monkey_business);
+    assert_eq!(monkey_business, 101436);
+}
+
+fn part2(filename: &str) {
+    let monkey_business = run_monkeys(filename, 10000, |worry, modulus|{worry%modulus});
+    println!("{}", monkey_business);
+    assert_eq!(monkey_business, 19754471646);
 }
 
 fn main() {
-    //part1("input/d11.ex");
-    //part1("input/d11.txt");
-    part2("input/d11.ex");
+    part1("input/d11.txt");
     part2("input/d11.txt");
 }
