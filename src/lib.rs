@@ -1,6 +1,9 @@
 use std::vec::Vec;
-//use std::collections::HashSet;
-//use std::collections::HashMap;
+use std::hash::Hash;
+use priority_queue::PriorityQueue;
+use std::collections::HashMap;
+use std::ops::SubAssign;
+use std::ops::AddAssign;
 
 #[cfg(test)]
 mod tests {
@@ -153,5 +156,50 @@ pub fn transpose_ragged<T: Copy>(matrix: &Vec<Vec<T>>, fill: T) -> Vec<Vec<T>> {
 macro_rules! slice_of_strs {
     ( $x:expr ) => {
         $x.iter().map(String::as_str).collect::<Vec<_>>().as_slice()
+    }
+}
+
+pub trait AStarLocation {
+    type Scenario;
+    type Cost;
+
+    fn check_success(&self, scenario: &Self::Scenario) -> bool;
+    fn nexts_with_incremental_costs(&self, scenario: &Self::Scenario) -> Vec<(Self, Self::Cost)>
+        where Self: Sized;
+    fn heuristic_remaining_cost(&self, scenario: &Self::Scenario) -> Self::Cost;
+    fn zero_cost() -> Self::Cost;
+}
+
+pub fn a_star<Location>(init_state: &Location, scenario: &Location::Scenario) -> Option<(Location, Location::Cost)>
+where Location: AStarLocation + Hash + Eq + Copy,
+      <Location as AStarLocation>::Cost: SubAssign + AddAssign + Hash + Ord + Copy,
+{
+    let mut to_visit = PriorityQueue::new();
+    let mut already_visited: HashMap<Location, Location::Cost> = HashMap::new();
+    let mut initial_estimate = Location::zero_cost();
+    initial_estimate -= init_state.heuristic_remaining_cost(scenario);
+    let initial_estimate = initial_estimate;
+    to_visit.push((*init_state, Location::zero_cost()), initial_estimate);
+    loop {
+        if let Some(((state, cost_of_state), _)) = to_visit.pop() {
+            if state.check_success(scenario) {
+                return Some((state, cost_of_state));
+            }
+            already_visited.insert(state, cost_of_state);
+            for (next, incremental_cost) in state.nexts_with_incremental_costs(scenario) {
+                let mut cost_of_next = cost_of_state;
+                cost_of_next += incremental_cost;
+                let cost_of_next = cost_of_next;
+                if !already_visited.contains_key(&next) || *already_visited.get(&next).unwrap() > cost_of_next {
+                    let mut estimate = Location::zero_cost();
+                    estimate -= cost_of_next;
+                    estimate -= next.heuristic_remaining_cost(scenario);
+                    let estimate = estimate;
+                    to_visit.push((next, cost_of_next), estimate);
+                }
+            }
+        } else {
+            return None;
+        }
     }
 }
