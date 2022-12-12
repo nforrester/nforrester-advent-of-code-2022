@@ -47,10 +47,6 @@ impl AStarLocation for Point {
     fn heuristic_remaining_cost(&self, (_, end): &(Field, Point)) -> i64 {
         (self.x - end.x).abs() + (self.y - end.y).abs()
     }
-
-    fn zero_cost() -> i64 {
-        0
-    }
 }
 
 fn parse_field(filename: &str) -> (Field, Point, Point) {

@@ -2,8 +2,10 @@ use std::vec::Vec;
 use std::hash::Hash;
 use priority_queue::PriorityQueue;
 use std::collections::HashMap;
-use std::ops::SubAssign;
-use std::ops::AddAssign;
+use std::ops::Sub;
+use std::ops::Add;
+use std::ops::Neg;
+use num::traits::Zero;
 
 #[cfg(test)]
 mod tests {
@@ -167,19 +169,23 @@ pub trait AStarLocation {
     fn nexts_with_incremental_costs(&self, scenario: &Self::Scenario) -> Vec<(Self, Self::Cost)>
         where Self: Sized;
     fn heuristic_remaining_cost(&self, scenario: &Self::Scenario) -> Self::Cost;
-    fn zero_cost() -> Self::Cost;
 }
 
 pub fn a_star<Location>(init_state: &Location, scenario: &Location::Scenario) -> Option<(Location, Location::Cost)>
 where Location: AStarLocation + Hash + Eq + Copy,
-      <Location as AStarLocation>::Cost: SubAssign + AddAssign + Hash + Ord + Copy,
+      <Location as AStarLocation>::Cost:
+          Hash +
+          Ord +
+          Copy +
+          Zero +
+          Add<Location::Cost, Output=Location::Cost> +
+          Sub<Location::Cost, Output=Location::Cost> +
+          Neg<Output=Location::Cost>,
 {
     let mut to_visit = PriorityQueue::new();
     let mut already_visited: HashMap<Location, Location::Cost> = HashMap::new();
-    let mut initial_estimate = Location::zero_cost();
-    initial_estimate -= init_state.heuristic_remaining_cost(scenario);
-    let initial_estimate = initial_estimate;
-    to_visit.push((*init_state, Location::zero_cost()), initial_estimate);
+    let initial_estimate: Location::Cost = -init_state.heuristic_remaining_cost(scenario);
+    to_visit.push((*init_state, Location::Cost::zero()), initial_estimate);
     loop {
         if let Some(((state, cost_of_state), _)) = to_visit.pop() {
             if state.check_success(scenario) {
@@ -187,14 +193,9 @@ where Location: AStarLocation + Hash + Eq + Copy,
             }
             already_visited.insert(state, cost_of_state);
             for (next, incremental_cost) in state.nexts_with_incremental_costs(scenario) {
-                let mut cost_of_next = cost_of_state;
-                cost_of_next += incremental_cost;
-                let cost_of_next = cost_of_next;
+                let cost_of_next: Location::Cost = cost_of_state + incremental_cost;
                 if !already_visited.contains_key(&next) || *already_visited.get(&next).unwrap() > cost_of_next {
-                    let mut estimate = Location::zero_cost();
-                    estimate -= cost_of_next;
-                    estimate -= next.heuristic_remaining_cost(scenario);
-                    let estimate = estimate;
+                    let estimate: Location::Cost = -cost_of_next - next.heuristic_remaining_cost(scenario);
                     to_visit.push((next, cost_of_next), estimate);
                 }
             }
