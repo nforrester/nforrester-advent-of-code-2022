@@ -127,8 +127,9 @@ impl<'captures_lifetime> ReCap<'captures_lifetime> {
 }
 
 pub fn recap<'captures_lifetime>(re: &str, string: &'captures_lifetime str) -> ReCap<'captures_lifetime> {
+    let r = regex::Regex::new(re).unwrap();
     ReCap {
-        captures: regex::Regex::new(re).unwrap().captures(string).unwrap(),
+        captures: r.captures(string).unwrap(),
     }
 }
 
