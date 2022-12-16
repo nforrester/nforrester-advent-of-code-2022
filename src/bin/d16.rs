@@ -138,14 +138,8 @@ fn solve_for_valves_in_time(map: &Map, shortcuts: &Shortcuts,  my_valves: u64, a
     let mut already_visited: HashMap<SubStateA, SubStateB> = HashMap::new();
     to_visit.push(init_state, heuristic(&init_state, &map, shortcuts));
     let mut best_proven = best_proven;
-    let mut iters = 0;
     loop {
         if let Some((game_state, _)) = to_visit.pop() {
-            iters += 1;
-            if iters % 10000 == 0 {
-                dbg!((iters, best_proven, game_state.b.time_left, to_visit.len()));
-            }
-
             if game_state.b.time_left < 0 {
                 continue;
             }
@@ -244,7 +238,6 @@ fn part2(filename: &str, expected: i64) {
                 elephant_valves |= mask;
             }
         }
-        println!("{:X}, {:X}, {}", my_valves, elephant_valves, best_proven);
         let my_score = solve_for_valves_in_time(&map, &shortcuts, my_valves, 26, 0);
         let elephant_score = solve_for_valves_in_time(&map, &shortcuts, elephant_valves, 26, best_proven - my_score);
         best_proven = max(best_proven, my_score + elephant_score);
