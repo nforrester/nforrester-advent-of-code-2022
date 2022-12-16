@@ -7,6 +7,8 @@ use priority_queue::PriorityQueue;
 
 type Map = HashMap<i64, (i64, Vec<i64>, u64)>;
 
+type Shortcuts = HashMap<i64, HashMap<i64, i64>>;
+
 fn name_to_number(name: &str) -> i64 {
     let mut chars = name.chars();
     let a = chars.next().unwrap() as u8 as i64;
@@ -53,8 +55,30 @@ fn time_to_reach_and_open_valve(map: &Map, start: i64, end: i64) -> i64 {
     a_star(&Room{name:start}, &(map.clone(), end)).unwrap().1 + 1
 }
 
-fn benefit_and_remaining_time_after_valve(map: &Map, remaining_time: i64, start: i64, end: i64) -> (i64, i64) {
-    let t = time_to_reach_and_open_valve(map, start, end);
+fn compute_shortcuts(map: &Map, dests: &Vec<i64>) -> Shortcuts {
+    let mut shortcuts: Shortcuts = HashMap::new();
+    for start in dests {
+        let mut these: HashMap<i64, i64> = HashMap::new();
+        for end in dests {
+            if let Some(those) = shortcuts.get(start) {
+                if let Some(d) = those.get(end) {
+                    these.insert(*end, *d);
+                    continue;
+                }
+            }
+            these.insert(*end, time_to_reach_and_open_valve(map, *start, *end));
+        }
+        shortcuts.insert(*start, these);
+    }
+    return shortcuts;
+}
+
+fn shortcut(shortcuts: &Shortcuts, start: i64, end: i64) -> i64 {
+    *shortcuts.get(&start).unwrap().get(&end).unwrap()
+}
+
+fn benefit_and_remaining_time_after_valve(map: &Map, shortcuts: &Shortcuts, remaining_time: i64, start: i64, end: i64) -> (i64, i64) {
+    let t = shortcut(shortcuts, start, end);
     let remaining_time = remaining_time - t;
     (map.get(&end).unwrap().0 * remaining_time, remaining_time)
 }
@@ -87,10 +111,10 @@ fn get_closed_valves(game_state: &GameState, map: &Map) -> Vec<(i64, u64)> {
     return closed_valves;
 }
 
-fn heuristic(game_state: &GameState, map: &Map) -> i64 {
+fn heuristic(game_state: &GameState, map: &Map, shortcuts: &Shortcuts) -> i64 {
     let mut h = game_state.b.pressure_out;
     for (valve, _) in get_closed_valves(game_state, map) {
-        let (b, t) = benefit_and_remaining_time_after_valve(map, game_state.b.time_left, game_state.a.location, valve);
+        let (b, t) = benefit_and_remaining_time_after_valve(map, shortcuts, game_state.b.time_left, game_state.a.location, valve);
         if t >= 0 {
             h += b;
         }
@@ -98,7 +122,7 @@ fn heuristic(game_state: &GameState, map: &Map) -> i64 {
     return h;
 }
 
-fn solve_for_valves_in_time(map: &Map, my_valves: u64, allowed_time: i64, best_proven: i64) -> i64 {
+fn solve_for_valves_in_time(map: &Map, shortcuts: &Shortcuts,  my_valves: u64, allowed_time: i64, best_proven: i64) -> i64 {
     let init_state = GameState {
             a: SubStateA {
                 location: name_to_number("AA"),
@@ -112,7 +136,7 @@ fn solve_for_valves_in_time(map: &Map, my_valves: u64, allowed_time: i64, best_p
 
     let mut to_visit: PriorityQueue<GameState, i64> = PriorityQueue::new();
     let mut already_visited: HashMap<SubStateA, SubStateB> = HashMap::new();
-    to_visit.push(init_state, heuristic(&init_state, &map));
+    to_visit.push(init_state, heuristic(&init_state, &map, shortcuts));
     let mut best_proven = best_proven;
     let mut iters = 0;
     loop {
@@ -132,7 +156,7 @@ fn solve_for_valves_in_time(map: &Map, my_valves: u64, allowed_time: i64, best_p
             }
             let closed_valves = get_closed_valves(&game_state, &map);
             for (valve, mask) in closed_valves {
-                let (b, t) = benefit_and_remaining_time_after_valve(&map, game_state.b.time_left, game_state.a.location, valve);
+                let (b, t) = benefit_and_remaining_time_after_valve(&map, shortcuts, game_state.b.time_left, game_state.a.location, valve);
                 if t < 0 {
                     continue;
                 }
@@ -146,7 +170,7 @@ fn solve_for_valves_in_time(map: &Map, my_valves: u64, allowed_time: i64, best_p
                             time_left: t,
                         },
                     };
-                let h = heuristic(&new_state, &map);
+                let h = heuristic(&new_state, &map, shortcuts);
                 if h > best_proven {
                     if let Some(already_b) = already_visited.get(&new_state.a) {
                         if already_b.pressure_out < new_state.b.pressure_out || already_b.time_left < new_state.b.time_left {
@@ -168,6 +192,9 @@ fn solve_for_valves_in_time(map: &Map, my_valves: u64, allowed_time: i64, best_p
 fn part1(filename: &str, expected: i64) {
     let map = parse_input(filename);
     let good_valves: Vec<i64> = map.iter().filter(|(_, (rate, _, _))|{*rate > 0}).map(|x|{*x.0}).collect();
+    let mut gvps = good_valves.clone();
+    gvps.push(name_to_number("AA"));
+    let shortcuts = compute_shortcuts(&map, &gvps);
 
     let mut init_closed_valves = 0u64;
     for v in &good_valves {
@@ -175,7 +202,7 @@ fn part1(filename: &str, expected: i64) {
     }
     let init_closed_valves = init_closed_valves;
 
-    let answer = solve_for_valves_in_time(&map, init_closed_valves, 30, 0);
+    let answer = solve_for_valves_in_time(&map, &shortcuts, init_closed_valves, 30, 0);
 
     println!("{}", answer);
     assert_eq!(answer, expected);
@@ -184,6 +211,9 @@ fn part1(filename: &str, expected: i64) {
 fn part2(filename: &str, expected: i64) {
     let map = parse_input(filename);
     let good_valves: Vec<i64> = map.iter().filter(|(_, (rate, _, _))|{*rate > 0}).map(|x|{*x.0}).collect();
+    let mut gvps = good_valves.clone();
+    gvps.push(name_to_number("AA"));
+    let shortcuts = compute_shortcuts(&map, &gvps);
 
     let mut init_closed_valves = 0u64;
     for v in &good_valves {
@@ -215,8 +245,8 @@ fn part2(filename: &str, expected: i64) {
             }
         }
         println!("{:X}, {:X}, {}", my_valves, elephant_valves, best_proven);
-        let my_score = solve_for_valves_in_time(&map, my_valves, 26, 0);
-        let elephant_score = solve_for_valves_in_time(&map, elephant_valves, 26, best_proven - my_score);
+        let my_score = solve_for_valves_in_time(&map, &shortcuts, my_valves, 26, 0);
+        let elephant_score = solve_for_valves_in_time(&map, &shortcuts, elephant_valves, 26, best_proven - my_score);
         best_proven = max(best_proven, my_score + elephant_score);
     }
 
